@@ -1,0 +1,1111 @@
+made by adin
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ilocos Empanada - POS & Analytics Dashboard</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SheetJS (XLSX Export) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#F97316',
+                            darkOrange: '#EA580C',
+                            yellow: '#FACC15',
+                            teal: '#0D9488',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #F1F5F9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col bg-slate-50">
+
+    <!-- Navigation Header -->
+    <header class="bg-gradient-to-r from-orange-600 via-amber-600 to-red-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm flex items-center justify-center shadow-inner">
+                    <i class="fa-solid fa-utensils text-2xl text-amber-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+                        Ilocos Empanada
+                    </h1>
+                    <p class="text-xs text-amber-100/90 font-medium flex items-center gap-1.5 mt-0.5">
+                        <i class="fa-solid fa-location-dot text-amber-300"></i> Diversion Road, Seaside Lapasan
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Clock -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="hidden md:flex flex-col text-right mr-2">
+                    <span id="current-date" class="text-xs font-medium text-amber-100">--</span>
+                    <span id="current-time" class="text-sm font-bold tracking-wide">00:00:00 AM</span>
+                </div>
+                <button onclick="exportToExcel()" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-excel text-sm"></i> Export Excel
+                </button>
+                <button onclick="addQuickTestOrder()" class="text-xs bg-amber-400 hover:bg-amber-500 text-slate-950 px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-vial"></i> Test Order
+                </button>
+                <button onclick="clearAllData()" class="text-xs bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-lg font-medium transition flex items-center gap-1.5 border border-red-500/30">
+                    <i class="fa-solid fa-rotate-right"></i> Reset (0)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
+
+        <!-- SECTION 1: TODAY OVERVIEW CARDS -->
+        <section>
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-orange-500"></i> Today Overview
+                </h2>
+                <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-1 rounded-md border border-emerald-200 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live System
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Total Sales Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Sales</p>
+                            <h3 id="stat-today-sales" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">₱0.00</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold border border-emerald-100">
+                            <i class="fa-solid fa-pesos-sign"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 gap-1.5">
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i> Served orders revenue
+                    </div>
+                </div>
+
+                <!-- Best Seller Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Best Seller</p>
+                            <h3 id="stat-today-bestseller" class="text-lg sm:text-xl font-extrabold text-orange-600 mt-1 truncate max-w-[180px]">None</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold border border-amber-100">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 gap-1.5">
+                        <span id="stat-today-bestseller-count" class="font-semibold text-slate-700">0 pcs sold</span> today
+                    </div>
+                </div>
+
+                <!-- # of Orders Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider"># of Orders</p>
+                            <h3 id="stat-today-orders" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold border border-blue-100">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-slate-500 gap-1.5">
+                        <span id="stat-today-served-count" class="font-semibold text-emerald-600">0 Served</span> • <span id="stat-today-active-count" class="font-semibold text-amber-600">0 Active</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2 & 3: POS ORDER ENTRY & QUEUE TRACKER -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- SECTION 2: INTERACTIVE POS ORDER ENTRY (7 Cols) -->
+            <section class="lg:col-span-7 flex flex-col gap-5">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col h-full">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-cash-register text-orange-500"></i> Food Selection & Order Calculator
+                        </h2>
+                        <button onclick="clearCurrentCart()" class="text-xs text-slate-400 hover:text-red-500 font-medium transition flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can"></i> Clear Order
+                        </button>
+                    </div>
+
+                    <!-- Food Selection Buttons -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                        <!-- Regular -->
+                        <div class="bg-slate-50 border border-slate-200 hover:border-orange-400 rounded-xl p-3.5 flex flex-col justify-between transition hover:shadow-sm">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">Classic</span>
+                                    <span class="text-base font-extrabold text-orange-600">₱50</span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-sm">Regular</h3>
+                            </div>
+                            <button onclick="addToCart('regular')" class="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1 active:scale-95">
+                                <i class="fa-solid fa-plus"></i> Add Regular
+                            </button>
+                        </div>
+
+                        <!-- Special -->
+                        <div class="bg-slate-50 border border-slate-200 hover:border-orange-400 rounded-xl p-3.5 flex flex-col justify-between transition hover:shadow-sm">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[10px] font-bold bg-orange-100 text-orange-800 px-2 py-0.5 rounded">Popular</span>
+                                    <span class="text-base font-extrabold text-orange-600">₱90</span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-sm">Special</h3>
+                            </div>
+                            <button onclick="addToCart('special')" class="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1 active:scale-95">
+                                <i class="fa-solid fa-plus"></i> Add Special
+                            </button>
+                        </div>
+
+                        <!-- Special with Cheese -->
+                        <div class="bg-slate-50 border border-amber-200 hover:border-amber-400 rounded-xl p-3.5 flex flex-col justify-between transition hover:shadow-sm">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">Cheese</span>
+                                    <span class="text-base font-extrabold text-orange-600">₱110</span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-sm">Special w/ Cheese</h3>
+                            </div>
+                            <button onclick="addToCart('cheese')" class="mt-3 w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1 active:scale-95">
+                                <i class="fa-solid fa-plus"></i> Add Cheese
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cart Summary Table -->
+                    <div class="border border-slate-200 rounded-xl overflow-hidden mb-4 bg-slate-50 flex-grow min-h-[140px]">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
+                                    <th class="p-2.5">Variant</th>
+                                    <th class="p-2.5 text-center">Price</th>
+                                    <th class="p-2.5 text-center">Qty</th>
+                                    <th class="p-2.5 text-right">Subtotal</th>
+                                    <th class="p-2.5 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-items-body" class="divide-y divide-slate-200 bg-white">
+                                <!-- Cart items rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Payment & Change Calculations -->
+                    <div class="bg-slate-900 text-white rounded-xl p-4 space-y-3">
+                        <div class="flex justify-between items-center text-xs text-slate-300 border-b border-slate-800 pb-2">
+                            <span>Total Items Selected: <strong id="cart-total-qty" class="text-white font-bold">0</strong></span>
+                            <div class="text-right">
+                                <span class="text-slate-400 text-xs">Total Amount: </span>
+                                <span id="cart-total-amount" class="text-xl font-black text-amber-400 ml-1">₱0</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center pt-1">
+                            <div>
+                                <label for="cash-received" class="block text-xs font-semibold text-slate-300 mb-1">Cash Received (₱):</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold">₱</span>
+                                    <input type="number" id="cash-received" min="0" step="any" placeholder="Enter Cash" oninput="calculateChange()" class="w-full pl-7 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-bold focus:outline-none focus:border-amber-400 transition text-sm">
+                                </div>
+                            </div>
+
+                            <div id="change-box" class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 flex flex-col justify-center">
+                                <span class="text-[11px] font-semibold text-slate-400">Change:</span>
+                                <span id="cart-change-amount" class="text-lg font-black text-slate-400">₱0</span>
+                            </div>
+                        </div>
+
+                        <!-- Insufficient Cash Warning Indicator -->
+                        <div id="cash-warning" class="hidden text-xs text-red-400 bg-red-950/60 border border-red-800/60 p-2 rounded-lg flex items-center gap-1.5 font-medium">
+                            <i class="fa-solid fa-circle-exclamation text-red-400"></i> Cash received is less than total amount!
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="clearCurrentCart()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 px-3 rounded-xl transition text-xs flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-xmark"></i> Clear Order
+                            </button>
+                            <button onclick="submitOrder()" id="btn-submit-order" disabled class="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-bold py-2.5 px-3 rounded-xl transition text-xs flex items-center justify-center gap-1 shadow-md">
+                                <i class="fa-solid fa-paper-plane"></i> Place Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: ORDER STATUS & QUEUE TRACKER (5 Cols) -->
+            <section class="lg:col-span-5 flex flex-col gap-5">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col h-full">
+                    
+                    <!-- Queue Header & Status Counters -->
+                    <div class="border-b border-slate-100 pb-3 mb-3">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-orange-500"></i> Order Queue Status
+                            </h2>
+                            <span class="text-[11px] text-slate-400 font-medium">Live Queue</span>
+                        </div>
+
+                        <!-- Status Counters -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+                                <span class="block text-[10px] font-bold text-amber-800 uppercase">In Queue</span>
+                                <span id="queue-count-pending" class="text-lg font-extrabold text-amber-900">0</span>
+                            </div>
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-2 text-center">
+                                <span class="block text-[10px] font-bold text-orange-800 uppercase">Cooking</span>
+                                <span id="queue-count-cooking" class="text-lg font-extrabold text-orange-900">0</span>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center">
+                                <span class="block text-[10px] font-bold text-emerald-800 uppercase">Served</span>
+                                <span id="queue-count-served" class="text-lg font-extrabold text-emerald-900">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Queue List Area -->
+                    <div id="queue-container" class="space-y-3 overflow-y-auto max-h-[460px] pr-1 custom-scrollbar flex-grow">
+                        <!-- Dynamic Queue Cards or Empty State -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- SECTION 4: SUMMARY & ANALYTICS REPORTS -->
+        <section class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-3">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-orange-500"></i> Summary & Analytics Reports
+                    </h2>
+                    <p class="text-xs text-slate-500">Performance summaries calculated across daily, weekly, and monthly periods.</p>
+                </div>
+                <!-- Prominent Excel Export Button -->
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-emerald-500/40">
+                    <i class="fa-solid fa-file-excel text-base"></i> Export Sales Data to Excel (.xlsx)
+                </button>
+            </div>
+
+            <!-- 3-Column Analytics Summaries -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <!-- Daily Summary -->
+                <div class="bg-gradient-to-br from-slate-50 to-orange-50/40 rounded-xl p-4 border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-orange-800 uppercase tracking-wider bg-orange-100 px-2 py-0.5 rounded">Daily Summary</span>
+                            <i class="fa-solid fa-calendar-day text-orange-400"></i>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">Daily Revenue</p>
+                        <p id="summary-daily-sales" class="text-2xl font-black text-slate-900 mt-0.5">₱0.00</p>
+                        
+                        <div class="mt-3 space-y-1 text-xs border-t border-slate-200/60 pt-2">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Regular (₱50):</span>
+                                <span id="summary-daily-reg" class="font-bold">0 pcs</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Special (₱90):</span>
+                                <span id="summary-daily-spec" class="font-bold">0 pcs</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Special w/ Cheese (₱110):</span>
+                                <span id="summary-daily-cheese" class="font-bold">0 pcs</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-slate-500 italic bg-white p-2 rounded border border-slate-100 text-center">
+                        Total Orders Completed: <strong id="summary-daily-orders-count" class="text-slate-800">0</strong>
+                    </div>
+                </div>
+
+                <!-- Weekly Summary -->
+                <div class="bg-gradient-to-br from-slate-50 to-amber-50/40 rounded-xl p-4 border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-amber-800 uppercase tracking-wider bg-amber-100 px-2 py-0.5 rounded">Weekly Summary</span>
+                            <i class="fa-solid fa-calendar-week text-amber-500"></i>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">Weekly Total Income</p>
+                        <p id="summary-weekly-income" class="text-2xl font-black text-slate-900 mt-0.5">₱0.00</p>
+
+                        <div class="mt-3 space-y-1.5 text-xs border-t border-slate-200/60 pt-2">
+                            <p class="text-slate-500">Highest Sales Day:</p>
+                            <div class="bg-amber-100/80 text-amber-900 p-2 rounded-lg border border-amber-200/80 font-bold flex items-center justify-between">
+                                <span id="summary-weekly-highest-day"><i class="fa-solid fa-trophy text-amber-600 mr-1"></i> None</span>
+                                <span id="summary-weekly-highest-amount" class="text-slate-900">₱0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-slate-500 italic bg-white p-2 rounded border border-slate-100 text-center">
+                        Past 7 days income tracking
+                    </div>
+                </div>
+
+                <!-- Monthly Summary -->
+                <div class="bg-gradient-to-br from-slate-50 to-teal-50/40 rounded-xl p-4 border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-teal-800 uppercase tracking-wider bg-teal-100 px-2 py-0.5 rounded">Monthly Summary</span>
+                            <i class="fa-solid fa-calendar-days text-teal-500"></i>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">Monthly Total Income</p>
+                        <p id="summary-monthly-income" class="text-2xl font-black text-slate-900 mt-0.5">₱0.00</p>
+
+                        <div class="mt-3 space-y-1.5 text-xs border-t border-slate-200/60 pt-2">
+                            <p class="text-slate-500">Top Selling Variant (Month):</p>
+                            <div class="bg-teal-100/80 text-teal-900 p-2 rounded-lg border border-teal-200/80 font-bold flex items-center justify-between">
+                                <span id="summary-monthly-best-variant"><i class="fa-solid fa-fire text-orange-600 mr-1"></i> None</span>
+                                <span id="summary-monthly-best-variant-count" class="text-slate-900">0 sold</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-slate-500 italic bg-white p-2 rounded border border-slate-100 text-center">
+                        Current month cumulative sales
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Visualizations -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <!-- Doughnut Chart: Variant Share -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col items-center">
+                    <h3 class="text-sm font-bold text-slate-700 mb-3 w-full text-left flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-orange-500"></i> Variant Sales Share
+                    </h3>
+                    <div class="w-full max-w-[260px] aspect-square relative flex items-center justify-center">
+                        <canvas id="chart-variant-share"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bar Chart: Daily Sales Trends -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col">
+                    <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-teal-600"></i> Weekly Sales Trend (Last 7 Days)
+                    </h3>
+                    <div class="w-full flex-grow min-h-[220px]">
+                        <canvas id="chart-weekly-trend"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-4 border-t border-slate-800 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-1">
+            <p>© <span id="footer-year">2026</span> <strong>Ilocos Empanada</strong> — POS & Queue Management System</p>
+            <p class="text-slate-500">Diversion Road, Seaside Lapasan</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- CONSTANTS & PRODUCT SELECTION ---
+        const PRODUCTS = {
+            regular: { id: 'regular', name: 'Regular', price: 50 },
+            special: { id: 'special', name: 'Special', price: 90 },
+            cheese: { id: 'cheese', name: 'Special w/ Cheese', price: 110 }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let cart = { regular: 0, special: 0, cheese: 0 };
+        let orders = []; // Primary storage array initialized to empty []
+        let nextOrderNum = 1;
+
+        // Chart References
+        let variantChartInstance = null;
+        let weeklyChartInstance = null;
+
+        // --- INIT ON LOAD ---
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('footer-year').textContent = new Date().getFullYear();
+            startClock();
+            loadStoredOrders();
+            renderCart();
+            updateDashboard();
+            initCharts();
+        });
+
+        // Real-time Clock
+        function startClock() {
+            const updateTime = () => {
+                const now = new Date();
+                document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            };
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
+
+        function loadStoredOrders() {
+            const saved = localStorage.getItem('ilocos_empanada_excel_orders');
+            if (saved) {
+                try {
+                    orders = JSON.parse(saved);
+                    if (orders.length > 0) {
+                        const maxNum = Math.max(...orders.map(o => o.orderNum || 0));
+                        nextOrderNum = maxNum + 1;
+                    }
+                } catch (e) {
+                    console.error("Error reading stored orders", e);
+                    orders = [];
+                }
+            } else {
+                orders = []; // Clean state with ZERO orders
+            }
+        }
+
+        function saveOrders() {
+            localStorage.setItem('ilocos_empanada_excel_orders', JSON.stringify(orders));
+        }
+
+        // Clear All Data back to Absolute 0
+        function clearAllData() {
+            if (confirm("Reset system data to 0 orders? This will clear all sales history and queue state.")) {
+                orders = [];
+                nextOrderNum = 1;
+                cart = { regular: 0, special: 0, cheese: 0 };
+                document.getElementById('cash-received').value = '';
+                saveOrders();
+                renderCart();
+                updateDashboard();
+            }
+        }
+
+        // Quick Helper to add 1 test order for instant verification
+        function addQuickTestOrder() {
+            const now = new Date();
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+            const testOrder = {
+                id: 'ORD-' + String(nextOrderNum).padStart(3, '0'),
+                orderNum: nextOrderNum++,
+                timestamp: now.toISOString(),
+                dayName: daysOfWeek[now.getDay()],
+                items: { regular: 1, special: 1, cheese: 1 },
+                totalAmount: 50 + 90 + 110,
+                cashReceived: 300,
+                change: 50,
+                status: 'Served'
+            };
+
+            orders.unshift(testOrder);
+            saveOrders();
+            updateDashboard();
+        }
+
+        // --- CART & POS LOGIC ---
+        function addToCart(variantKey) {
+            cart[variantKey] = (cart[variantKey] || 0) + 1;
+            renderCart();
+        }
+
+        function updateCartQty(variantKey, delta) {
+            if (cart[variantKey] !== undefined) {
+                cart[variantKey] = Math.max(0, cart[variantKey] + delta);
+                renderCart();
+            }
+        }
+
+        function clearCurrentCart() {
+            cart = { regular: 0, special: 0, cheese: 0 };
+            document.getElementById('cash-received').value = '';
+            renderCart();
+        }
+
+        function getCartTotal() {
+            return (cart.regular * PRODUCTS.regular.price) +
+                   (cart.special * PRODUCTS.special.price) +
+                   (cart.cheese * PRODUCTS.cheese.price);
+        }
+
+        function getCartQty() {
+            return cart.regular + cart.special + cart.cheese;
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('cart-items-body');
+            tbody.innerHTML = '';
+
+            let total = getCartTotal();
+            let totalQty = getCartQty();
+            let hasItems = false;
+
+            Object.keys(PRODUCTS).forEach(key => {
+                const qty = cart[key];
+                if (qty > 0) {
+                    hasItems = true;
+                    const prod = PRODUCTS[key];
+                    const subtotal = qty * prod.price;
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-semibold text-slate-800">${prod.name}</td>
+                        <td class="p-2.5 text-center text-slate-600">₱${prod.price}</td>
+                        <td class="p-2.5 text-center">
+                            <div class="inline-flex items-center space-x-1 bg-slate-100 rounded-md p-0.5 border border-slate-200">
+                                <button onclick="updateCartQty('${key}', -1)" class="w-5 h-5 bg-white text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center font-bold text-xs shadow-xs">-</button>
+                                <span class="w-5 text-center font-bold text-slate-800 text-xs">${qty}</span>
+                                <button onclick="updateCartQty('${key}', 1)" class="w-5 h-5 bg-white text-slate-700 hover:bg-slate-200 rounded flex items-center justify-center font-bold text-xs shadow-xs">+</button>
+                            </div>
+                        </td>
+                        <td class="p-2.5 text-right font-extrabold text-slate-900">₱${subtotal}</td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="cart['${key}']=0; renderCart();" class="text-slate-400 hover:text-red-500 p-1">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+
+            if (!hasItems) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-slate-400 font-medium">
+                            <i class="fa-solid fa-basket-shopping text-2xl mb-1.5 block opacity-30"></i>
+                            No items added yet. Click buttons above to build order.
+                        </td>
+                    </tr>
+                `;
+            }
+
+            document.getElementById('cart-total-qty').textContent = totalQty;
+            document.getElementById('cart-total-amount').textContent = `₱${total.toLocaleString()}`;
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const total = getCartTotal();
+            const cashInput = document.getElementById('cash-received');
+            const cashVal = parseFloat(cashInput.value);
+            const cash = isNaN(cashVal) ? 0 : cashVal;
+
+            const changeElement = document.getElementById('cart-change-amount');
+            const warningElement = document.getElementById('cash-warning');
+            const changeBox = document.getElementById('change-box');
+            const btnSubmit = document.getElementById('btn-submit-order');
+
+            if (total === 0) {
+                changeElement.textContent = '₱0';
+                changeElement.className = "text-lg font-black text-slate-400";
+                changeBox.className = "bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 flex flex-col justify-center";
+                warningElement.classList.add('hidden');
+                btnSubmit.disabled = true;
+                return;
+            }
+
+            const change = cash - total;
+
+            if (cashInput.value.trim() !== "" && cash >= total) {
+                changeElement.textContent = `₱${change.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
+                changeElement.className = "text-lg font-black text-emerald-400";
+                changeBox.className = "bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-800/60 flex flex-col justify-center";
+                warningElement.classList.add('hidden');
+                btnSubmit.disabled = false;
+            } else {
+                changeElement.textContent = `₱0`;
+                changeElement.className = "text-lg font-black text-slate-500";
+                changeBox.className = "bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 flex flex-col justify-center";
+                
+                if (cashInput.value.trim() !== "" && cash < total) {
+                    warningElement.classList.remove('hidden');
+                } else {
+                    warningElement.classList.add('hidden');
+                }
+                btnSubmit.disabled = true;
+            }
+        }
+
+        function submitOrder() {
+            const total = getCartTotal();
+            const cash = parseFloat(document.getElementById('cash-received').value) || 0;
+
+            if (total === 0 || cash < total) return;
+
+            const change = cash - total;
+            const now = new Date();
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+            const newOrder = {
+                id: 'ORD-' + String(nextOrderNum).padStart(3, '0'),
+                orderNum: nextOrderNum++,
+                timestamp: now.toISOString(),
+                dayName: daysOfWeek[now.getDay()],
+                items: { ...cart },
+                totalAmount: total,
+                cashReceived: cash,
+                change: change,
+                status: 'In Queue'
+            };
+
+            orders.unshift(newOrder);
+            saveOrders();
+            clearCurrentCart();
+            updateDashboard();
+        }
+
+        // --- QUEUE MANAGEMENT ---
+        function updateOrderStatus(orderId, newStatus) {
+            const target = orders.find(o => o.id === orderId);
+            if (target) {
+                target.status = newStatus;
+                saveOrders();
+                updateDashboard();
+            }
+        }
+
+        function deleteOrder(orderId) {
+            if (confirm("Remove order from queue?")) {
+                orders = orders.filter(o => o.id !== orderId);
+                saveOrders();
+                updateDashboard();
+            }
+        }
+
+        function renderQueue() {
+            const container = document.getElementById('queue-container');
+            container.innerHTML = '';
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fa-solid fa-inbox text-3xl mb-2 opacity-30 block"></i>
+                        <p class="font-semibold text-sm text-slate-500">Order queue is empty</p>
+                        <p class="text-xs text-slate-400 mt-1">Place an order from the terminal to start monitoring.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            orders.forEach(o => {
+                const isPending = o.status === 'In Queue';
+                const isCooking = o.status === 'Cooking';
+                const isServed = o.status === 'Served';
+
+                let statusBadgeClass = '';
+                if (isPending) statusBadgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+                if (isCooking) statusBadgeClass = 'bg-orange-100 text-orange-800 border-orange-300 animate-pulse';
+                if (isServed) statusBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+                let itemTags = '';
+                if (o.items.regular > 0) itemTags += `<span class="bg-slate-100 px-2 py-0.5 rounded text-xs font-semibold text-slate-700">${o.items.regular}x Regular</span> `;
+                if (o.items.special > 0) itemTags += `<span class="bg-orange-50 px-2 py-0.5 rounded text-xs font-semibold text-orange-700">${o.items.special}x Special</span> `;
+                if (o.items.cheese > 0) itemTags += `<span class="bg-amber-50 px-2 py-0.5 rounded text-xs font-semibold text-amber-800">${o.items.cheese}x Cheese</span> `;
+
+                const timeFormatted = new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border transition ${isServed ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-white border-slate-200 hover:border-orange-300 shadow-xs'}`;
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-sm text-slate-900">#${o.orderNum}</span>
+                            <span class="text-[11px] text-slate-400 font-medium">${timeFormatted}</span>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusBadgeClass}">
+                            ${o.status}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-wrap gap-1 my-2">
+                        ${itemTags}
+                    </div>
+
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 text-xs">
+                        <div class="text-slate-500">
+                            Total: <strong class="text-slate-900 font-extrabold">₱${o.totalAmount}</strong>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            ${isPending ? `
+                                <button onclick="updateOrderStatus('${o.id}', 'Cooking')" class="bg-orange-500 hover:bg-orange-600 text-white px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 text-[11px]">
+                                    <i class="fa-solid fa-fire text-[10px]"></i> Start Cooking
+                                </button>
+                                <button onclick="deleteOrder('${o.id}')" class="text-slate-400 hover:text-red-500 p-1">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : ''}
+
+                            ${isCooking ? `
+                                <button onclick="updateOrderStatus('${o.id}', 'Served')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 text-[11px]">
+                                    <i class="fa-solid fa-check text-[10px]"></i> Mark Served
+                                </button>
+                            ` : ''}
+
+                            ${isServed ? `
+                                <span class="text-emerald-600 font-semibold text-[11px] flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check"></i> Completed
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- METRICS & CALCULATIONS ---
+        function updateDashboard() {
+            const todayStr = new Date().toDateString();
+
+            // Queue status counters
+            const countPending = orders.filter(o => o.status === 'In Queue').length;
+            const countCooking = orders.filter(o => o.status === 'Cooking').length;
+            const countServed = orders.filter(o => o.status === 'Served').length;
+
+            document.getElementById('queue-count-pending').textContent = countPending;
+            document.getElementById('queue-count-cooking').textContent = countCooking;
+            document.getElementById('queue-count-served').textContent = countServed;
+
+            // Today's Served Orders
+            const todayServed = orders.filter(o => new Date(o.timestamp).toDateString() === todayStr && o.status === 'Served');
+            const todayTotalSales = todayServed.reduce((sum, o) => sum + o.totalAmount, 0);
+
+            document.getElementById('stat-today-sales').textContent = `₱${todayTotalSales.toFixed(2)}`;
+            document.getElementById('stat-today-orders').textContent = orders.length;
+            document.getElementById('stat-today-served-count').textContent = `${countServed} Served`;
+            document.getElementById('stat-today-active-count').textContent = `${countPending + countCooking} Active`;
+
+            // Today variant breakdowns
+            let todayReg = 0, todaySpec = 0, todayCheese = 0;
+            todayServed.forEach(o => {
+                todayReg += o.items.regular || 0;
+                todaySpec += o.items.special || 0;
+                todayCheese += o.items.cheese || 0;
+            });
+
+            document.getElementById('summary-daily-sales').textContent = `₱${todayTotalSales.toFixed(2)}`;
+            document.getElementById('summary-daily-reg').textContent = `${todayReg} pcs`;
+            document.getElementById('summary-daily-spec').textContent = `${todaySpec} pcs`;
+            document.getElementById('summary-daily-cheese').textContent = `${todayCheese} pcs`;
+            document.getElementById('summary-daily-orders-count').textContent = todayServed.length;
+
+            // Today Best Seller
+            let todayBest = "None";
+            let todayBestCount = 0;
+            const todayVariants = [
+                { name: 'Regular', count: todayReg },
+                { name: 'Special', count: todaySpec },
+                { name: 'Special w/ Cheese', count: todayCheese }
+            ].sort((a, b) => b.count - a.count);
+
+            if (todayVariants[0].count > 0) {
+                todayBest = todayVariants[0].name;
+                todayBestCount = todayVariants[0].count;
+            }
+
+            document.getElementById('stat-today-bestseller').textContent = todayBest;
+            document.getElementById('stat-today-bestseller-count').textContent = `${todayBestCount} pcs sold`;
+
+            // --- WEEKLY SUMMARY ---
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const weeklyOrders = orders.filter(o => new Date(o.timestamp) >= sevenDaysAgo && o.status === 'Served');
+            const weeklyIncome = weeklyOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+            document.getElementById('summary-weekly-income').textContent = `₱${weeklyIncome.toFixed(2)}`;
+
+            const dayTotals = {};
+            weeklyOrders.forEach(o => {
+                const day = o.dayName || 'Unknown';
+                dayTotals[day] = (dayTotals[day] || 0) + o.totalAmount;
+            });
+
+            let highestDay = 'None';
+            let highestAmount = 0;
+            Object.keys(dayTotals).forEach(day => {
+                if (dayTotals[day] > highestAmount) {
+                    highestAmount = dayTotals[day];
+                    highestDay = day;
+                }
+            });
+
+            document.getElementById('summary-weekly-highest-day').innerHTML = `<i class="fa-solid fa-trophy text-amber-600 mr-1"></i> ${highestDay}`;
+            document.getElementById('summary-weekly-highest-amount').textContent = `₱${highestAmount}`;
+
+            // --- MONTHLY SUMMARY ---
+            const now = new Date();
+            const monthlyOrders = orders.filter(o => {
+                const d = new Date(o.timestamp);
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && o.status === 'Served';
+            });
+
+            const monthlyIncome = monthlyOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+            document.getElementById('summary-monthly-income').textContent = `₱${monthlyIncome.toFixed(2)}`;
+
+            let mReg = 0, mSpec = 0, mCheese = 0;
+            monthlyOrders.forEach(o => {
+                mReg += o.items.regular || 0;
+                mSpec += o.items.special || 0;
+                mCheese += o.items.cheese || 0;
+            });
+
+            const monthlyVariants = [
+                { name: 'Regular', count: mReg },
+                { name: 'Special', count: mSpec },
+                { name: 'Special w/ Cheese', count: mCheese }
+            ].sort((a, b) => b.count - a.count);
+
+            const mBest = monthlyVariants[0];
+            document.getElementById('summary-monthly-best-variant').innerHTML = `<i class="fa-solid fa-fire text-orange-600 mr-1"></i> ${mBest.count > 0 ? mBest.name : 'None'}`;
+            document.getElementById('summary-monthly-best-variant-count').textContent = `${mBest.count} sold`;
+
+            // Re-render Queue and Charts
+            renderQueue();
+            updateCharts();
+        }
+
+        // --- CHART JS INTEGRATION ---
+        function initCharts() {
+            // Variant Share Chart
+            const ctxVariant = document.getElementById('chart-variant-share').getContext('2d');
+            variantChartInstance = new Chart(ctxVariant, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Regular', 'Special', 'Special w/ Cheese'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#F97316', '#EA580C', '#EAB308'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { family: 'Inter', size: 11, weight: '600' }, usePointStyle: true }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // Weekly Trend Chart
+            const ctxWeekly = document.getElementById('chart-weekly-trend').getContext('2d');
+            weeklyChartInstance = new Chart(ctxWeekly, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Sales (₱)',
+                        data: [],
+                        backgroundColor: '#0D9488',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => '₱' + v, font: { family: 'Inter', size: 10 } },
+                            grid: { color: '#F1F5F9' }
+                        },
+                        x: {
+                            ticks: { font: { family: 'Inter', size: 10, weight: '600' } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            updateCharts();
+        }
+
+        function updateCharts() {
+            if (!variantChartInstance || !weeklyChartInstance) return;
+
+            let totalReg = 0, totalSpec = 0, totalCheese = 0;
+            orders.filter(o => o.status === 'Served').forEach(o => {
+                totalReg += o.items.regular || 0;
+                totalSpec += o.items.special || 0;
+                totalCheese += o.items.cheese || 0;
+            });
+
+            variantChartInstance.data.datasets[0].data = [totalReg, totalSpec, totalCheese];
+            variantChartInstance.update();
+
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const labels = [];
+            const data = [];
+
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dayLabel = daysOfWeek[d.getDay()];
+                const dateStr = d.toDateString();
+
+                const daySales = orders
+                    .filter(o => new Date(o.timestamp).toDateString() === dateStr && o.status === 'Served')
+                    .reduce((sum, o) => sum + o.totalAmount, 0);
+
+                labels.push(dayLabel);
+                data.push(daySales);
+            }
+
+            weeklyChartInstance.data.labels = labels;
+            weeklyChartInstance.data.datasets[0].data = data;
+            weeklyChartInstance.update();
+        }
+
+        // --- EXCEL EXPORT FUNCTIONALITY ---
+        function exportToExcel() {
+            if (typeof XLSX === 'undefined') {
+                alert("SheetJS library is still loading. Please try again in a moment.");
+                return;
+            }
+
+            if (orders.length === 0) {
+                if (!confirm("There are currently 0 orders in the system. Export empty Excel report?")) {
+                    return;
+                }
+            }
+
+            // Sheet 1: Detailed Orders Log
+            const ordersLogData = orders.map(o => {
+                const dateObj = new Date(o.timestamp);
+                return {
+                    "Order ID": o.id,
+                    "Order Number": o.orderNum,
+                    "Date": dateObj.toLocaleDateString(),
+                    "Time": dateObj.toLocaleTimeString(),
+                    "Day": o.dayName || '',
+                    "Regular (₱50) Qty": o.items.regular || 0,
+                    "Special (₱90) Qty": o.items.special || 0,
+                    "Special w/ Cheese (₱110) Qty": o.items.cheese || 0,
+                    "Total Amount (₱)": o.totalAmount,
+                    "Cash Received (₱)": o.cashReceived,
+                    "Change (₱)": o.change,
+                    "Status": o.status
+                };
+            });
+
+            // Sheet 2: Variant Sales Summary
+            let regQty = 0, specQty = 0, cheeseQty = 0;
+            const servedOrders = orders.filter(o => o.status === 'Served');
+            servedOrders.forEach(o => {
+                regQty += o.items.regular || 0;
+                specQty += o.items.special || 0;
+                cheeseQty += o.items.cheese || 0;
+            });
+
+            const variantSummaryData = [
+                { "Variant Name": "Regular", "Unit Price (₱)": 50, "Total Sold (Pcs)": regQty, "Gross Sales (₱)": regQty * 50 },
+                { "Variant Name": "Special", "Unit Price (₱)": 90, "Total Sold (Pcs)": specQty, "Gross Sales (₱)": specQty * 90 },
+                { "Variant Name": "Special w/ Cheese", "Unit Price (₱)": 110, "Total Sold (Pcs)": cheeseQty, "Gross Sales (₱)": cheeseQty * 110 },
+                {
+                    "Variant Name": "TOTAL",
+                    "Unit Price (₱)": "-",
+                    "Total Sold (Pcs)": regQty + specQty + cheeseQty,
+                    "Gross Sales (₱)": (regQty * 50) + (specQty * 90) + (cheeseQty * 110)
+                }
+            ];
+
+            // Sheet 3: Executive Sales Report
+            const todayStr = new Date().toDateString();
+            const todayServed = orders.filter(o => new Date(o.timestamp).toDateString() === todayStr && o.status === 'Served');
+            const todaySales = todayServed.reduce((sum, o) => sum + o.totalAmount, 0);
+
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const weeklyIncome = orders.filter(o => new Date(o.timestamp) >= sevenDaysAgo && o.status === 'Served')
+                                       .reduce((sum, o) => sum + o.totalAmount, 0);
+
+            const now = new Date();
+            const monthlyIncome = orders.filter(o => {
+                const d = new Date(o.timestamp);
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && o.status === 'Served';
+            }).reduce((sum, o) => sum + o.totalAmount, 0);
+
+            const executiveSummaryData = [
+                { "Metric / Indicator": "Report Generated On", "Value": new Date().toLocaleString() },
+                { "Metric / Indicator": "Location", "Value": "Diversion Road, Seaside Lapasan" },
+                { "Metric / Indicator": "Total Orders Recorded", "Value": orders.length },
+                { "Metric / Indicator": "Completed (Served) Orders", "Value": servedOrders.length },
+                { "Metric / Indicator": "Today Gross Sales", "Value": `₱${todaySales.toFixed(2)}` },
+                { "Metric / Indicator": "Past 7-Days Income", "Value": `₱${weeklyIncome.toFixed(2)}` },
+                { "Metric / Indicator": "Current Month Income", "Value": `₱${monthlyIncome.toFixed(2)}` }
+            ];
+
+            // Create Workbook
+            const wb = XLSX.utils.book_new();
+
+            // Convert array of objects to worksheets
+            const wsOrders = XLSX.utils.json_to_sheet(ordersLogData.length > 0 ? ordersLogData : [{ "Message": "No orders available" }]);
+            const wsVariants = XLSX.utils.json_to_sheet(variantSummaryData);
+            const wsExec = XLSX.utils.json_to_sheet(executiveSummaryData);
+
+            // Append worksheets
+            XLSX.utils.book_append_sheet(wb, wsOrders, "Orders Log");
+            XLSX.utils.book_append_sheet(wb, wsVariants, "Variant Summary");
+            XLSX.utils.book_append_sheet(wb, wsExec, "Executive Summary");
+
+            // Format Filename
+            const filenameDate = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `Ilocos_Empanada_Sales_Report_${filenameDate}.xlsx`);
+        }
+    </script>
+</body>
+</html>
